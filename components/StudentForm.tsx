@@ -17,7 +17,6 @@ interface StudentData {
   class: string;
   month: string;
   attendance_percentage: number | '';
-  email?: string;
 }
 
 interface Class {
@@ -70,7 +69,6 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
         class: data.className,
         month: new Date().toLocaleString('default', { month: 'long' }),
         attendance_percentage: data.attendance,
-        email: data.email,
       });
     } catch (error) {
       console.error('[v0] Error fetching student:', error);
@@ -100,7 +98,6 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
         name: formData.name,
         rollNo: formData.roll_no,
         class: formData.class,
-        email: formData.email,
         attendance: typeof formData.attendance_percentage === 'number' ? formData.attendance_percentage : Number(formData.attendance_percentage) || 0,
       };
 
@@ -166,22 +163,6 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
           </div>
 
           {/* Class */}
-                    {/* Email */}
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2">
-                        Email <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email || ''}
-                        onChange={handleChange}
-                        required
-                        className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 placeholder-gray-400 transition-all"
-                        placeholder="Enter email"
-                      />
-                    </div>
-
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
               Class <span className="text-red-500">*</span>

@@ -537,7 +537,7 @@ export function MarksManagementDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email</p>
-                  <p className="text-sm font-medium text-foreground">{selectedStudent.email || '—'}</p>
+                  <p className="text-sm font-medium text-foreground">—</p>
                 </div>
               </div>
             </div>

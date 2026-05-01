@@ -30,7 +30,7 @@ export default function MarksPage() {
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto">
-          <div className="ml-64 px-8 py-8">
+          <div className="px-8 py-8">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-foreground mb-2">Marks Management Dashboard</h1>

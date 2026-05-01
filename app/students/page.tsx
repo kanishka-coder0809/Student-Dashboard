@@ -32,7 +32,7 @@ export default function StudentsPage() {
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto">
-          <div className="ml-64 px-8 py-8">
+          <div className="px-8 py-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div>

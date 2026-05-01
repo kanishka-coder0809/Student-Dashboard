@@ -28,7 +28,7 @@ export function TopSearchBar({ onSearch }: TopSearchBarProps) {
 
   return (
     <div className="sticky top-0 z-40 bg-background border-b border-border">
-      <div className="ml-64 px-8 py-6 flex items-center gap-4">
+      <div className="px-8 py-6 flex items-center gap-4">
         {/* Search Icon */}
         <div className="flex items-center bg-card border border-input rounded-lg px-4 py-2 flex-1">
           <Search className="w-5 h-5 text-muted-foreground" />

@@ -13,7 +13,7 @@ export default function NewStudentPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-auto">
-        <div className="ml-64 px-8 py-8">
+        <div className="px-8 py-8">
           {/* Breadcrumb */}
           <Link href="/students" className="flex items-center gap-2 text-accent hover:opacity-80 mb-8">
             <ChevronLeft className="w-4 h-4" />

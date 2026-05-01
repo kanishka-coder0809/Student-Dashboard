@@ -102,7 +102,6 @@ export function StudentTable({ filters }: StudentTableProps) {
               <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Name</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Roll No</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Class</th>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Email</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Attendance</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Avg Marks</th>
               <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Actions</th>
@@ -111,7 +110,7 @@ export function StudentTable({ filters }: StudentTableProps) {
           <tbody className="divide-y divide-border">
             {filteredStudents.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
                   No students found
                 </td>
               </tr>
@@ -121,7 +120,6 @@ export function StudentTable({ filters }: StudentTableProps) {
                   <td className="px-6 py-4 text-sm text-foreground font-medium">{student.name}</td>
                   <td className="px-6 py-4 text-sm text-foreground">{student.rollNo}</td>
                   <td className="px-6 py-4 text-sm text-foreground">{student.className}</td>
-                  <td className="px-6 py-4 text-sm text-foreground">{student.email}</td>
                   <td className="px-6 py-4 text-sm text-foreground">
                     <div className="flex items-center gap-2">
                       <div className="w-24 bg-muted rounded-full h-2">

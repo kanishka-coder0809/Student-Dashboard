@@ -30,7 +30,7 @@ export default function ClassesPage() {
 
         {/* Page Content */}
         <div className="flex-1 overflow-auto bg-white">
-          <div className="ml-64 px-8 py-8">
+          <div className="px-8 py-8">
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-4xl font-bold text-gradient mb-2">Classes Management</h1>
