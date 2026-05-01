@@ -1,0 +1,58 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #ffffff;
+  --foreground: #1f2937;
+  --card: #f3e8ff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #d8b4fe;
+  --secondary-foreground: #6b21a8;
+  --muted: #e5e7eb;
+  --muted-foreground: #6b7280;
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e9d5ff;
+  --input: #faf5ff;
+  --ring: #8b5cf6;
+  --chart-1: #8b5cf6;
+  --chart-2: #a78bfa;
+  --chart-3: #c4b5fd;
+  --chart-4: #d8b4fe;
+  --chart-5: #ede9fe;
+  --radius: 0.625rem;
+  --sidebar: #f3e8ff;
+  --sidebar-foreground: #1f2937;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #d8b4fe;
+  --sidebar-accent-foreground: #6b21a8;
+  --sidebar-border: #e9d5ff;
+  --sidebar-ring: #8b5cf6;
+}
+
+* {
+  border-color: #e9d5ff;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background-color: #ffffff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #ffffff;
+  color: #1f2937;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
