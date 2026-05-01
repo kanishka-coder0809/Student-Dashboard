@@ -1,0 +1,11 @@
+# Exclude backend/server from Vercel deployment
+server/
+server/**
+
+# Local secrets and node modules
+.env
+.env.*
+node_modules/
+.next/
+.DS_Store
+.vscode/
