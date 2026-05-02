@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/student-management';
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Please define the MONGODB_URI environment variable inside Vercel Project Settings');
+  }
+}
+
+const finalUri = MONGODB_URI || 'mongodb://localhost:27017/student-management';
 
 type MongooseCache = {
   conn: typeof mongoose | null;
@@ -21,7 +29,7 @@ export async function connectToDatabase() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((db) => db);
+    cached.promise = mongoose.connect(finalUri).then((db) => db);
   }
 
   cached.conn = await cached.promise;

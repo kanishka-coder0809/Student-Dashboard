@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import mongoose from 'mongoose';
-import { connectToDatabase } from '@/lib/mongodb';
-import ClassModel from '@/lib/models/Class';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-    const classItem = await ClassModel.findOne({ _id: params.id }).lean();
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('id', params.id)
+      .single();
 
-    if (!classItem) {
-      return NextResponse.json({ success: false, message: 'Class not found' }, { status: 404 });
+    if (error) {
+      if (error.code === 'PGRST116') return NextResponse.json({ success: false, message: 'Class not found' }, { status: 404 });
+      throw error;
     }
 
-    return NextResponse.json(classItem);
+    return NextResponse.json(data);
   } catch (error) {
     console.error('[API] Error fetching class:', error);
     return NextResponse.json(
@@ -30,13 +33,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json({ success: false, message: 'Invalid class id' }, { status: 400 });
-    }
-
     const body = await request.json();
-    const updatePayload: Record<string, string> = {};
+    const supabase = await createClient();
 
+    const updatePayload: any = {};
     if (body.class_name !== undefined) updatePayload.class_name = String(body.class_name).trim();
     if (body.section !== undefined) updatePayload.section = String(body.section).trim();
     if (body.description !== undefined) updatePayload.description = String(body.description).trim();
@@ -48,18 +48,15 @@ export async function PUT(
       );
     }
 
-    await connectToDatabase();
-    const updatedClass = await ClassModel.findByIdAndUpdate(
-      params.id,
-      { $set: updatePayload },
-      { new: true, runValidators: true }
-    ).lean();
+    const { data, error } = await supabase
+      .from('classes')
+      .update(updatePayload)
+      .eq('id', params.id)
+      .select()
+      .single();
 
-    if (!updatedClass) {
-      return NextResponse.json({ success: false, message: 'Class not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(updatedClass);
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
     console.error('[API] Error updating class:', error);
     return NextResponse.json(
@@ -74,14 +71,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectToDatabase();
-    const deletedClass = await ClassModel.findOneAndDelete({ _id: params.id }).lean();
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('classes')
+      .delete()
+      .eq('id', params.id)
+      .select()
+      .single();
 
-    if (!deletedClass) {
-      return NextResponse.json({ success: false, message: 'Class not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(deletedClass);
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
     console.error('[API] Error deleting class:', error);
     return NextResponse.json(

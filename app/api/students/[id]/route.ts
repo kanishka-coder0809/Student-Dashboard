@@ -1,39 +1,76 @@
-import { NextRequest, NextResponse } from 'next/server'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-
-async function proxyToApi(path: string, init?: RequestInit) {
-  const response = await fetch(`${API_BASE}${path}`, init)
-  const text = await response.text()
-
-  return new NextResponse(text, {
-    status: response.status,
-    headers: { 'content-type': response.headers.get('content-type') || 'application/json' },
-  })
-}
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return proxyToApi(`/api/students/${params.id}`)
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return NextResponse.json({ error: 'Student not found' }, { status: 404 });
+      throw error;
+    }
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('[Student GET ID]', error);
+    return NextResponse.json({ error: 'Failed to fetch student' }, { status: 500 });
+  }
 }
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const body = await request.json()
-  return proxyToApi(`/api/students/${params.id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  try {
+    const supabase = await createClient();
+    const body = await request.json();
+
+    const payload: any = {};
+    if (body.name !== undefined) payload.name = body.name;
+    if (body.rollNo !== undefined) payload.roll_no = body.rollNo;
+    if (body.class !== undefined) payload.class = body.class;
+    if (body.attendance !== undefined) payload.attendance_percentage = body.attendance;
+    if (body.email !== undefined) payload.email = body.email;
+
+    const { data, error } = await supabase
+      .from('students')
+      .update(payload)
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('[Student PUT ID]', error);
+    return NextResponse.json({ error: 'Failed to update student' }, { status: 500 });
+  }
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return proxyToApi(`/api/students/${params.id}`, { method: 'DELETE' })
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('[Student DELETE ID]', error);
+    return NextResponse.json({ error: 'Failed to delete student' }, { status: 500 });
+  }
 }

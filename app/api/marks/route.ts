@@ -1,120 +1,162 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { connectToDatabase } from '@/lib/mongodb'
-import { MarksModel } from '@/lib/models/Marks'
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectToDatabase()
+    const supabase = await createClient();
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
+    const studentId = searchParams.get('studentId');
+    const limit = parseInt(searchParams.get('limit') || '1000', 10);
 
-    const searchParams = request.nextUrl.searchParams
-    const id = searchParams.get('id')
-    const studentId = searchParams.get('studentId')
-    const limit = parseInt(searchParams.get('limit') || '1000', 10)
-
-    // Single mark by ID
     if (id) {
-      const mark = await MarksModel.findById(id)
-        .populate('studentId', 'name rollNo class')
-        .lean()
+      const { data, error } = await supabase
+        .from('marks')
+        .select('*, students(*)')
+        .eq('id', id)
+        .single();
 
-      if (!mark) {
-        return NextResponse.json({ error: 'Mark not found' }, { status: 404 })
+      if (error) {
+        if (error.code === 'PGRST116') return NextResponse.json({ error: 'Mark not found' }, { status: 404 });
+        throw error;
       }
-
-      return NextResponse.json(mark)
+      return NextResponse.json(data);
     }
 
-    // Multiple marks by student ID or all
-    let query: any = {}
+    let query = supabase.from('marks').select('*, students(*)');
+    
     if (studentId) {
-      query.studentId = studentId
+      query = query.eq('student_id', studentId);
     }
 
-    const marks = await MarksModel.find(query)
-      .populate('studentId', 'name rollNo class')
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean()
+    const { data, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(limit);
 
-    return NextResponse.json(marks)
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('[Marks GET]', error)
-    return NextResponse.json({ error: 'Failed to fetch marks' }, { status: 500 })
+    console.error('[Marks GET]', error);
+    return NextResponse.json({ error: 'Failed to fetch marks' }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    await connectToDatabase()
-    const body = await request.json()
+    const supabase = await createClient();
+    const body = await request.json();
 
-    const marksData = {
-      studentId: body.studentId,
+    const marksObtained = Number(body.marksObtained ?? body.marks_obtained ?? 0);
+    
+    // Auto-calculate grade based on marks
+    let grade = 'F';
+    if (marksObtained >= 90) grade = 'A+';
+    else if (marksObtained >= 85) grade = 'A';
+    else if (marksObtained >= 75) grade = 'B';
+    else if (marksObtained >= 65) grade = 'C';
+    else if (marksObtained >= 55) grade = 'D';
+
+    const payload = {
+      student_id: body.studentId || body.student_id,
       subject: body.subject,
-      marksObtained: body.marksObtained,
-      maxMarks: body.maxMarks || 100,
-      grade: body.grade,
-      homeworkStatus: body.homeworkStatus || 'Incomplete',
-      teacherComments: body.teacherComments || ''
-    }
+      marks_obtained: marksObtained,
+      grade: grade,
+      homework_status: body.homeworkStatus || body.homework_status || 'Incomplete',
+      teacher_comments: body.teacherComments || body.teacher_comments || '',
+    };
 
-    const marks = await MarksModel.create(marksData)
-    return NextResponse.json(marks, { status: 201 })
-  } catch (error: any) {
-    console.error('[Marks POST]', error)
-    if (error.code === 11000) {
-      return NextResponse.json(
-        { error: 'Marks for this student and subject already exist' },
-        { status: 400 }
-      )
+    const { data, error } = await supabase
+      .from('marks')
+      .insert([payload])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'Marks for this student and subject already exist' },
+          { status: 400 }
+        );
+      }
+      throw error;
     }
-    return NextResponse.json({ error: 'Failed to create marks' }, { status: 500 })
+    return NextResponse.json(data, { status: 201 });
+  } catch (error) {
+    console.error('[Marks POST]', error);
+    return NextResponse.json({ error: 'Failed to create marks' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    await connectToDatabase()
-    const searchParams = request.nextUrl.searchParams
-    const id = searchParams.get('id')
+    const supabase = await createClient();
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing marks ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing marks ID' }, { status: 400 });
     }
 
-    const body = await request.json()
-    const marks = await MarksModel.findByIdAndUpdate(id, body, { new: true })
-
-    if (!marks) {
-      return NextResponse.json({ error: 'Marks not found' }, { status: 404 })
+    const body = await request.json();
+    const payload: any = {};
+    
+    if (body.subject !== undefined) payload.subject = body.subject;
+    if (body.marksObtained !== undefined || body.marks_obtained !== undefined) {
+      const marks = Number(body.marksObtained ?? body.marks_obtained);
+      payload.marks_obtained = marks;
+      
+      // Re-calculate grade
+      let grade = 'F';
+      if (marks >= 90) grade = 'A+';
+      else if (marks >= 85) grade = 'A';
+      else if (marks >= 75) grade = 'B';
+      else if (marks >= 65) grade = 'C';
+      else if (marks >= 55) grade = 'D';
+      payload.grade = grade;
+    }
+    if (body.homeworkStatus !== undefined || body.homework_status !== undefined) {
+      payload.homework_status = body.homeworkStatus ?? body.homework_status;
+    }
+    if (body.teacherComments !== undefined || body.teacher_comments !== undefined) {
+      payload.teacher_comments = body.teacherComments ?? body.teacher_comments;
     }
 
-    return NextResponse.json(marks)
+    const { data, error } = await supabase
+      .from('marks')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json(data);
   } catch (error) {
-    console.error('[Marks PUT]', error)
-    return NextResponse.json({ error: 'Failed to update marks' }, { status: 500 })
+    console.error('[Marks PUT]', error);
+    return NextResponse.json({ error: 'Failed to update marks' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
-    await connectToDatabase()
-    const searchParams = request.nextUrl.searchParams
-    const id = searchParams.get('id')
+    const supabase = await createClient();
+    const searchParams = request.nextUrl.searchParams;
+    const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing marks ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing marks ID' }, { status: 400 });
     }
 
-    const marks = await MarksModel.findByIdAndDelete(id)
+    const { data, error } = await supabase
+      .from('marks')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (!marks) {
-      return NextResponse.json({ error: 'Marks not found' }, { status: 404 })
-    }
-
-    return NextResponse.json({ success: true })
+    if (error) throw error;
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Marks DELETE]', error)
-    return NextResponse.json({ error: 'Failed to delete marks' }, { status: 500 })
+    console.error('[Marks DELETE]', error);
+    return NextResponse.json({ error: 'Failed to delete marks' }, { status: 500 });
   }
 }

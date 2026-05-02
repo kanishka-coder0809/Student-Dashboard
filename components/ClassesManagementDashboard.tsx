@@ -231,8 +231,7 @@ export function ClassesManagementDashboard() {
               <label className="block text-sm font-medium text-foreground mb-2">
                 Description (Optional)
               </label>
-              <input
-                type="text"
+              <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Class description"
