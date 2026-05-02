@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
 import { normalizeStudent } from '@/lib/normalize';
 import Link from 'next/link';
 import { Eye, Trash2, Edit2 } from 'lucide-react';
@@ -30,7 +29,7 @@ export function StudentTable({ filters }: StudentTableProps) {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const response = await fetch(api('/api/students'));
+      const response = await fetch('/api/students');
       if (!response.ok) {
         throw new Error(`Failed to fetch students (${response.status})`);
       }
@@ -39,11 +38,8 @@ export function StudentTable({ filters }: StudentTableProps) {
       const normalized = list.map(normalizeStudent);
       setStudents(normalized);
       setFilteredStudents(normalized);
-      if (!Array.isArray(data)) {
-        console.error('[v0] Unexpected API response:', data);
-      }
     } catch (error) {
-      console.error('[v0] Error fetching students:', error);
+      console.error('[StudentTable] Error fetching students:', error);
       setStudents([]);
       setFilteredStudents([]);
     } finally {
@@ -74,7 +70,7 @@ export function StudentTable({ filters }: StudentTableProps) {
   const deleteStudent = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this student?')) {
       try {
-        const response = await fetch(api(`/api/students/${id}`), { method: 'DELETE' });
+        const response = await fetch(`/api/students?id=${id}`, { method: 'DELETE' });
         if (!response.ok) {
           throw new Error(`Failed to delete student (${response.status})`);
         }

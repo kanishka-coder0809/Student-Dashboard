@@ -1,28 +1,91 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-
-async function proxyToApi(path: string, init?: RequestInit) {
-  const response = await fetch(`${API_BASE}${path}`, init)
-  const text = await response.text()
-
-  return new NextResponse(text, {
-    status: response.status,
-    headers: { 'content-type': response.headers.get('content-type') || 'application/json' },
-  })
-}
+import { connectToDatabase } from '@/lib/mongodb'
+import { StudentModel } from '@/lib/models/Student'
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const query = searchParams.toString()
-  return proxyToApi(`/api/students${query ? `?${query}` : ''}`)
+  try {
+    await connectToDatabase()
+
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+    const limit = parseInt(searchParams.get('limit') || '1000', 10)
+
+    if (id) {
+      const student = await StudentModel.findById(id).lean()
+      if (!student) {
+        return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+      }
+      return NextResponse.json(student)
+    }
+
+    const students = await StudentModel.find({})
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean()
+
+    return NextResponse.json(students)
+  } catch (error) {
+    console.error('[Students GET]', error)
+    return NextResponse.json({ error: 'Failed to fetch students' }, { status: 500 })
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
-  return proxyToApi('/api/students', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
+  try {
+    await connectToDatabase()
+    const body = await request.json()
+
+    const student = await StudentModel.create(body)
+    return NextResponse.json(student, { status: 201 })
+  } catch (error) {
+    console.error('[Students POST]', error)
+    return NextResponse.json({ error: 'Failed to create student' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await connectToDatabase()
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing student ID' }, { status: 400 })
+    }
+
+    const body = await request.json()
+    const student = await StudentModel.findByIdAndUpdate(id, body, { new: true })
+
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    }
+
+    return NextResponse.json(student)
+  } catch (error) {
+    console.error('[Students PUT]', error)
+    return NextResponse.json({ error: 'Failed to update student' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connectToDatabase()
+    const searchParams = request.nextUrl.searchParams
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing student ID' }, { status: 400 })
+    }
+
+    const student = await StudentModel.findByIdAndDelete(id)
+
+    if (!student) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('[Students DELETE]', error)
+    return NextResponse.json({ error: 'Failed to delete student' }, { status: 500 })
+  }
 }

@@ -1,17 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
 import { Save, X } from 'lucide-react';
-
-interface MarksData {
-  subject: string;
-  exam_type: string;
-  marks_obtained: number | '';
-  grade: string;
-  homework_status: 'Complete' | 'Incomplete';
-  teacher_comments: string;
-}
 
 interface MarksFormProps {
   studentId: string;
@@ -21,19 +11,19 @@ interface MarksFormProps {
 }
 
 const SUBJECTS = ['Mathematics', 'English', 'Science', 'History', 'Geography', 'Computer Science', 'Social Studies', 'Physical Education', 'Art', 'Music', 'Chemistry'];
-const EXAM_TYPES = ['Midterm', 'Final', 'Unit Test', 'Quiz', 'Assignment'];
 
 export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksFormProps) {
-  const [formData, setFormData] = useState<MarksData>({
+  const [formData, setFormData] = useState({
     subject: '',
-    exam_type: 'Midterm',
-    marks_obtained: '',
+    marksObtained: '',
+    maxMarks: 100,
     grade: 'A',
-    homework_status: 'Complete',
-    teacher_comments: '',
+    homeworkStatus: 'Complete',
+    teacherComments: '',
   });
   const [loading, setLoading] = useState(!!marksId);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (marksId) {
@@ -43,27 +33,28 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
 
   const fetchMarks = async () => {
     try {
-      const response = await fetch(api(`/api/marks/${marksId}`));
+      const response = await fetch(`/api/marks?id=${marksId}`);
+      if (!response.ok) throw new Error('Failed to fetch marks');
       const raw = await response.json();
-      // normalize fields from either backend
+      console.log('[MarksForm] Fetched marks:', raw);
       setFormData({
         subject: raw.subject,
-        exam_type: raw.exam_type || raw.examType || 'Midterm',
-        marks_obtained: raw.marks_obtained ?? raw.marksObtained ?? 0,
+        marksObtained: raw.marksObtained,
+        maxMarks: raw.maxMarks || 100,
         grade: raw.grade,
-        homework_status: raw.homework_status || raw.homeworkStatus,
-        teacher_comments: raw.teacher_comments || raw.comments || raw.teacherComments,
+        homeworkStatus: raw.homeworkStatus || 'Complete',
+        teacherComments: raw.teacherComments || '',
       });
     } catch (error) {
-      console.error('[v0] Error fetching marks:', error);
+      console.error('[MarksForm] Error fetching marks:', error);
+      setError('Failed to load marks');
     } finally {
       setLoading(false);
     }
   };
 
-  const calculateGrade = (marks: number): string => {
-    // Convert out of 50 to percentage
-    const percentage = (marks / 50) * 100;
+  const calculateGrade = (marks: number, maxMarks: number = 100): string => {
+    const percentage = (marks / maxMarks) * 100;
     if (percentage >= 90) return 'A+';
     if (percentage >= 80) return 'A';
     if (percentage >= 70) return 'B';
@@ -77,31 +68,31 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
     let newData = { ...formData, [name]: value };
 
     // Auto-calculate grade if marks are entered
-    if (name === 'marks_obtained' && value) {
+    if (name === 'marksObtained' && value) {
       const marks = Number(value);
-      newData.grade = calculateGrade(marks);
+      newData.grade = calculateGrade(marks, formData.maxMarks);
     }
 
-    setFormData(newData as MarksData);
+    setFormData(newData as any);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
 
     try {
       const payload = {
-        subject: formData.subject,
-        exam_type: formData.exam_type,
-        marks_obtained: Number(formData.marks_obtained),
-        grade: formData.grade,
-        homework_status: formData.homework_status,
-        teacher_comments: formData.teacher_comments,
-        // server expects studentId (ObjectId) for Mongo backend
         studentId: studentId,
+        subject: formData.subject,
+        marksObtained: Number(formData.marksObtained),
+        maxMarks: Number(formData.maxMarks),
+        grade: formData.grade,
+        homeworkStatus: formData.homeworkStatus,
+        teacherComments: formData.teacherComments,
       };
 
-      const url = marksId ? api(`/api/marks/${marksId}`) : api('/api/marks');
+      const url = marksId ? `/api/marks?id=${marksId}` : '/api/marks';
       const method = marksId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -110,18 +101,23 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
         body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
-        if (onSuccess) onSuccess();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save marks');
       }
+
+      console.log('[MarksForm] Marks saved successfully');
+      if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('[v0] Error saving marks:', error);
+      console.error('[MarksForm] Error saving marks:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save marks');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading...</div>;
+    return <div className="text-center py-8 text-gray-600">Loading marks...</div>;
   }
 
   return (
@@ -130,7 +126,13 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
         {marksId ? 'Edit Marks Entry' : 'Add New Marks Entry'}
       </h3>
 
-      <div className="grid grid-cols-3 gap-6">
+      {error && (
+        <div className="p-4 bg-red-100 border border-red-400 rounded-lg text-red-700">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-6">
         {/* Subject */}
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -141,29 +143,11 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
             value={formData.subject}
             onChange={handleChange}
             required
-            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white cursor-pointer transition-all appearance-none"
+            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white cursor-pointer transition-all"
           >
             <option value="">Select subject</option>
             {SUBJECTS.map(subject => (
               <option key={subject} value={subject}>{subject}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Exam Type */}
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Exam Type <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="exam_type"
-            value={formData.exam_type}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white cursor-pointer transition-all appearance-none"
-          >
-            {EXAM_TYPES.map(type => (
-              <option key={type} value={type}>{type}</option>
             ))}
           </select>
         </div>
@@ -176,17 +160,32 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
           <div className="flex items-center gap-3">
             <input
               type="number"
-              name="marks_obtained"
+              name="marksObtained"
               min="0"
-              max="50"
-              value={formData.marks_obtained}
+              max={formData.maxMarks}
+              value={formData.marksObtained}
               onChange={handleChange}
               required
-              className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 placeholder-gray-400 transition-all"
-              placeholder="0-50"
+              className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900"
+              placeholder="0"
             />
-            <span className="text-sm font-semibold text-gray-600">/ 50</span>
+            <span className="text-sm font-semibold text-gray-600">/ {formData.maxMarks}</span>
           </div>
+        </div>
+
+        {/* Max Marks */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Max Marks
+          </label>
+          <input
+            type="number"
+            name="maxMarks"
+            min="1"
+            value={formData.maxMarks}
+            onChange={handleChange}
+            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900"
+          />
         </div>
 
         {/* Grade */}
@@ -213,9 +212,9 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
-                name="homework_status"
+                name="homeworkStatus"
                 value="Complete"
-                checked={formData.homework_status === 'Complete'}
+                checked={formData.homeworkStatus === 'Complete'}
                 onChange={handleChange}
                 className="w-4 h-4 accent-purple-600"
               />
@@ -224,9 +223,9 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="radio"
-                name="homework_status"
+                name="homeworkStatus"
                 value="Incomplete"
-                checked={formData.homework_status === 'Incomplete'}
+                checked={formData.homeworkStatus === 'Incomplete'}
                 onChange={handleChange}
                 className="w-4 h-4 accent-purple-600"
               />
@@ -242,8 +241,8 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
           Teacher Comments
         </label>
         <textarea
-          name="teacher_comments"
-          value={formData.teacher_comments}
+          name="teacherComments"
+          value={formData.teacherComments}
           onChange={handleChange}
           rows={4}
           className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 placeholder-gray-400 transition-all resize-none"
@@ -261,14 +260,16 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
           <Save className="w-4 h-4" />
           {submitting ? 'Saving...' : 'Save Marks'}
         </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex items-center gap-2 px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition-all"
-        >
-          <X className="w-4 h-4" />
-          Cancel
-        </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex items-center gap-2 px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-900 font-semibold rounded-lg transition-all"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
+        )}
       </div>
     </form>
   );

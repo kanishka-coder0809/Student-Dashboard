@@ -6,10 +6,12 @@ const router = express.Router();
 // Get all classes
 router.get('/', async (req, res) => {
   try {
+    console.log('[Server] GET /api/classes - Fetching all classes');
     const classes = await ClassModel.find().sort({ createdAt: -1 });
+    console.log('[Server] Found classes:', classes.length);
     res.status(200).json(classes);
   } catch (error) {
-    console.error('[v0] Error fetching classes:', error.message);
+    console.error('[Server] Error fetching classes:', error.message);
     res.status(500).json({ success: false, message: 'Error fetching classes', error: error.message });
   }
 });
@@ -18,13 +20,20 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { class_name, section, description } = req.body;
-    if (!class_name) return res.status(400).json({ success: false, message: 'class_name is required' });
+    console.log('[Server] POST /api/classes - Creating class:', req.body);
+    
+    if (!class_name) {
+      console.log('[Server] class_name is required - returning 400');
+      return res.status(400).json({ success: false, message: 'class_name is required' });
+    }
 
     const cls = new ClassModel({ class_name, section: section || '', description: description || '' });
-    await cls.save();
-    res.status(201).json(cls);
+    const savedClass = await cls.save();
+    console.log('[Server] Class created successfully:', savedClass);
+    
+    res.status(201).json(savedClass);
   } catch (error) {
-    console.error('[v0] Error creating class:', error.message);
+    console.error('[Server] Error creating class:', error.message);
     res.status(500).json({ success: false, message: 'Error creating class', error: error.message });
   }
 });

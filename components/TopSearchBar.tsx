@@ -1,12 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
 
 interface SearchFilters {
   name: string;
   class: string;
   rollNo: string;
+}
+
+interface Class {
+  _id: string;
+  class_name: string;
+  section?: string;
 }
 
 interface TopSearchBarProps {
@@ -19,6 +25,22 @@ export function TopSearchBar({ onSearch }: TopSearchBarProps) {
     class: '',
     rollNo: '',
   });
+  const [classes, setClasses] = useState<Class[]>([]);
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const response = await fetch('/api/classes');
+      if (!response.ok) throw new Error('Failed to fetch classes');
+      const data = await response.json();
+      setClasses(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('[TopSearchBar] Error fetching classes:', error);
+    }
+  };
 
   const handleChange = (field: keyof SearchFilters, value: string) => {
     const newFilters = { ...filters, [field]: value };
@@ -50,12 +72,11 @@ export function TopSearchBar({ onSearch }: TopSearchBarProps) {
             className="bg-transparent border-0 outline-none text-foreground cursor-pointer text-sm"
           >
             <option value="">All Classes</option>
-            <option value="10A">Class 10A</option>
-            <option value="10B">Class 10B</option>
-            <option value="11A">Class 11A</option>
-            <option value="11B">Class 11B</option>
-            <option value="12A">Class 12A</option>
-            <option value="12B">Class 12B</option>
+            {classes.map((cls) => (
+              <option key={cls._id} value={cls.class_name}>
+                {cls.class_name} {cls.section ? `- ${cls.section}` : ''}
+              </option>
+            ))}
           </select>
         </div>
 

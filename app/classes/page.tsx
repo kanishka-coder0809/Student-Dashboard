@@ -1,47 +1,48 @@
-'use client';
-
 import Sidebar from '@/components/Sidebar';
-import { TopSearchBar } from '@/components/TopSearchBar';
 import { ClassesManagementDashboard } from '@/components/ClassesManagementDashboard';
-import { useState } from 'react';
-
-interface SearchFilters {
-  name: string;
-  class: string;
-  rollNo: string;
-}
 
 export default function ClassesPage() {
-  const [filters, setFilters] = useState<SearchFilters>({
-    name: '',
-    class: '',
-    rollNo: '',
-  });
-
   return (
-    <div className="flex h-screen bg-white">
-      {/* Sidebar */}
+    <div className="page-shell">
       <Sidebar />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Search Bar */}
-        <TopSearchBar onSearch={setFilters} />
-
-        {/* Page Content */}
-        <div className="flex-1 overflow-auto bg-white">
-          <div className="px-8 py-8">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-gradient mb-2">Classes Management</h1>
-              <p className="text-muted-foreground">Create and manage your school classes</p>
+      <main className="page-main">
+        <div className="page-main-inner">
+          <section className="hero-panel">
+            <div className="space-y-4">
+              <span className="chip-soft">Classes console</span>
+              <div className="space-y-3">
+                <h1 className="text-4xl font-bold tracking-tight text-gradient sm:text-5xl">
+                  Classes Management
+                </h1>
+                <p className="max-w-3xl text-sm leading-7 text-muted-foreground sm:text-base">
+                  Create new classes, edit sections, and keep the roster clean with a focused layout
+                  and reusable form styling.
+                </p>
+              </div>
             </div>
 
-            {/* Dashboard */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="surface-chip">
+                <div className="text-2xl font-bold text-foreground">Fast</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Save flow</div>
+              </div>
+              <div className="surface-chip">
+                <div className="text-2xl font-bold text-foreground">Clear</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Class details</div>
+              </div>
+              <div className="surface-chip">
+                <div className="text-2xl font-bold text-foreground">Styled</div>
+                <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Buttons & inputs</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="page-card">
             <ClassesManagementDashboard />
-          </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

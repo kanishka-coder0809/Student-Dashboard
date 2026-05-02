@@ -2,14 +2,16 @@ import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
 export interface StudentPDFData {
-  id: number
+  id: string | number
   name: string
   roll_no: string
   class: string
   attendance_percentage: number
+  email?: string
   marks?: Array<{
     subject: string
     marks_obtained: number
+    max_marks?: number
     grade: string
     homework_status: string
     teacher_comments: string
@@ -54,6 +56,10 @@ export const generateStudentPDF = async (student: StudentPDFData) => {
   pdf.text(`Class: ${student.class}`, 15, yPosition)
   yPosition += 7
   pdf.text(`Monthly Attendance: ${student.attendance_percentage}%`, 15, yPosition)
+  if (student.email) {
+    yPosition += 7
+    pdf.text(`Email: ${student.email}`, 15, yPosition)
+  }
 
   // Marks Section
   if (student.marks && student.marks.length > 0) {
@@ -69,8 +75,8 @@ export const generateStudentPDF = async (student: StudentPDFData) => {
     pdf.setFont(undefined, 'bold')
     pdf.setFillColor(229, 231, 235) // Light gray
     
-    const headers = ['Subject', 'Marks', 'Grade', 'Homework', 'Comments']
-    const colWidths = [40, 20, 20, 25, 50]
+    const headers = ['Subject', 'Marks', 'Max', 'Grade', 'Homework', 'Comments']
+    const colWidths = [35, 18, 15, 18, 20, 50]
     let xPosition = 15
 
     headers.forEach((header, idx) => {
@@ -94,10 +100,13 @@ export const generateStudentPDF = async (student: StudentPDFData) => {
       xPosition += colWidths[0]
       pdf.text(mark.marks_obtained.toString(), xPosition, yPosition)
       xPosition += colWidths[1]
-      pdf.text(mark.grade, xPosition, yPosition)
+      const maxMarks = mark.max_marks || 100
+      pdf.text(maxMarks.toString(), xPosition, yPosition)
       xPosition += colWidths[2]
-      pdf.text(mark.homework_status.substring(0, 10), xPosition, yPosition)
+      pdf.text(mark.grade, xPosition, yPosition)
       xPosition += colWidths[3]
+      pdf.text(mark.homework_status.substring(0, 10), xPosition, yPosition)
+      xPosition += colWidths[4]
       pdf.text(mark.teacher_comments?.substring(0, 20) || '-', xPosition, yPosition)
 
       yPosition += 7

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
 import { normalizeStudent } from '@/lib/normalize';
 import { Save, X } from 'lucide-react';
 
@@ -13,14 +12,13 @@ interface StudentFormProps {
 
 interface StudentData {
   name: string;
-  roll_no: string;
+  rollNo: string;
   class: string;
-  month: string;
-  attendance_percentage: number | '';
+  attendance: number | '';
 }
 
 interface Class {
-  id: number;
+  _id: string;
   class_name: string;
   section?: string;
 }
@@ -29,10 +27,9 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<StudentData>({
     name: '',
-    roll_no: '',
+    rollNo: '',
     class: '',
-    month: new Date().toLocaleString('default', { month: 'long' }),
-    attendance_percentage: '',
+    attendance: '',
   });
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(!!studentId);
@@ -47,31 +44,34 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch(api('/api/classes'));
+      const response = await fetch('/api/classes');
       if (!response.ok) {
         throw new Error(`Failed to fetch classes (${response.status})`);
       }
       const data = await response.json();
       setClasses(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('[v0] Error fetching classes:', error);
+      console.error('[StudentForm] Error fetching classes:', error);
     }
   };
 
   const fetchStudent = async () => {
     try {
-      const response = await fetch(api(`/api/students/${studentId}`));
-      const raw = await response.json();
-      const data = normalizeStudent(raw);
+      const response = await fetch(`/api/students?id=${studentId}`);
+      if (!response.ok) throw new Error('Failed to fetch student');
+      const students = await response.json();
+      const student = Array.isArray(students) ? students[0] : students;
+      if (!student) throw new Error('Student not found');
+      
+      const data = normalizeStudent(student);
       setFormData({
         name: data.name,
-        roll_no: data.rollNo,
+        rollNo: data.rollNo,
         class: data.className,
-        month: new Date().toLocaleString('default', { month: 'long' }),
-        attendance_percentage: data.attendance,
+        attendance: data.attendance,
       });
     } catch (error) {
-      console.error('[v0] Error fetching student:', error);
+      console.error('[StudentForm] Error fetching student:', error);
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,7 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'attendance_percentage' ? (value ? Number(value) : '') : value,
+      [name]: name === 'attendance' ? (value ? Number(value) : '') : value,
     }));
   };
 
@@ -90,15 +90,14 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
     setSubmitting(true);
 
     try {
-      const url = studentId ? api(`/api/students/${studentId}`) : api('/api/students');
       const method = studentId ? 'PUT' : 'POST';
+      const url = studentId ? `/api/students?id=${studentId}` : '/api/students';
 
-      // Map client form fields to Express/Mongo expected fields
-      const payload: any = {
+      const payload = {
         name: formData.name,
-        rollNo: formData.roll_no,
+        rollNo: formData.rollNo,
         class: formData.class,
-        attendance: typeof formData.attendance_percentage === 'number' ? formData.attendance_percentage : Number(formData.attendance_percentage) || 0,
+        attendance: typeof formData.attendance === 'number' ? formData.attendance : Number(formData.attendance) || 0,
       };
 
       const response = await fetch(url, {
@@ -112,11 +111,12 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
         else router.push('/students');
       } else {
         const err = await response.json().catch(() => ({}));
-        console.error('[v0] Student save failed:', err);
+        console.error('[StudentForm] Student save failed:', err);
         alert(err?.message || err?.error || 'Failed to save student');
       }
     } catch (error) {
-      console.error('[v0] Error saving student:', error);
+      console.error('[StudentForm] Error saving student:', error);
+      alert('Failed to save student');
     } finally {
       setSubmitting(false);
     }
@@ -153,8 +153,8 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
             </label>
             <input
               type="text"
-              name="roll_no"
-              value={formData.roll_no}
+              name="rollNo"
+              value={formData.rollNo}
               onChange={handleChange}
               required
               className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 placeholder-gray-400 transition-all"
@@ -176,52 +176,25 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
             >
               <option value="">Select class</option>
               {classes.map((cls) => (
-                <option key={(cls as any)._id || cls.id || cls.class_name} value={cls.class_name}>
-                  {cls.class_name}
+                <option key={cls._id} value={cls.class_name}>
+                  {cls.class_name} {cls.section ? `- ${cls.section}` : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Month for Attendance */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Month <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="month"
-              value={formData.month}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white cursor-pointer transition-all appearance-none"
-            >
-              <option value="January">January</option>
-              <option value="February">February</option>
-              <option value="March">March</option>
-              <option value="April">April</option>
-              <option value="May">May</option>
-              <option value="June">June</option>
-              <option value="July">July</option>
-              <option value="August">August</option>
-              <option value="September">September</option>
-              <option value="October">October</option>
-              <option value="November">November</option>
-              <option value="December">December</option>
-            </select>
-          </div>
-
           {/* Attendance */}
-          <div>
+          <div className="col-span-2">
             <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Monthly Attendance (%) <span className="text-red-500">*</span>
+              Attendance (%) <span className="text-red-500">*</span>
             </label>
             <div className="flex items-center gap-3">
               <input
                 type="number"
-                name="attendance_percentage"
+                name="attendance"
                 min="0"
                 max="100"
-                value={formData.attendance_percentage}
+                value={formData.attendance}
                 onChange={handleChange}
                 required
                 className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 placeholder-gray-400 transition-all"

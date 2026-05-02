@@ -1,22 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
 import { Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
 
 interface Class {
-  id: number;
+  id: string;
   class_name: string;
   section?: string;
   description?: string;
-  created_at?: string;
+  createdAt?: string;
 }
 
 export function ClassesManagementDashboard() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ className: '', section: '', description: '' });
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,16 +25,32 @@ export function ClassesManagementDashboard() {
 
   const fetchClasses = async () => {
     try {
-      const response = await fetch(api('/api/classes'));
+      const response = await fetch('/api/classes');
       if (!response.ok) {
         throw new Error(`Failed to fetch classes (${response.status})`);
       }
       const data = await response.json();
       // Ensure we only set an array — guard against error objects or unexpected shapes
       if (Array.isArray(data)) {
-        setClasses(data);
+        setClasses(
+          data.map((item: any) => ({
+            id: String(item._id ?? item.id),
+            class_name: item.class_name,
+            section: item.section,
+            description: item.description,
+            createdAt: item.createdAt ?? item.created_at,
+          }))
+        );
       } else if (data && Array.isArray((data as any).data)) {
-        setClasses((data as any).data);
+        setClasses(
+          (data as any).data.map((item: any) => ({
+            id: String(item._id ?? item.id),
+            class_name: item.class_name,
+            section: item.section,
+            description: item.description,
+            createdAt: item.createdAt ?? item.created_at,
+          }))
+        );
       } else {
         console.error('[v0] Unexpected classes API response:', data);
         setClasses([]);
@@ -51,45 +66,83 @@ export function ClassesManagementDashboard() {
     e.preventDefault();
     setSubmitting(true);
 
+    // Client-side validation
+    if (!formData.className.trim()) {
+      alert('Please enter a class name');
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      const url = editingId ? api(`/api/classes/${editingId}`) : api('/api/classes');
+      const url = editingId ? `/api/classes?id=${encodeURIComponent(editingId)}` : '/api/classes';
       const method = editingId ? 'PUT' : 'POST';
+      
+      const requestBody = {
+        class_name: formData.className.trim(),
+        section: formData.section.trim(),
+        description: formData.description.trim(),
+      };
+
+      console.log('[v0] Submitting class:', method, url, requestBody);
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          class_name: formData.className,
-          section: formData.section,
-          description: formData.description,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      const responseText = await response.text();
+      console.log('[v0] Response status:', response.status, 'body:', responseText);
+
       if (response.ok) {
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = responseText;
+        }
+        console.log('[v0] Class saved successfully:', data);
+        
         fetchClasses();
         setFormData({ className: '', section: '', description: '' });
         setShowForm(false);
         setEditingId(null);
+        
+        alert(editingId ? 'Class updated successfully!' : 'Class added successfully!');
       } else {
-        throw new Error(`Failed to save class (${response.status})`);
+        let errorMessage = `Failed to save class (${response.status})`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {}
+        console.error('[v0] Error response:', errorMessage);
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('[v0] Error saving class:', error);
+      alert('Failed to save class. Please check if the server is running.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const deleteClass = async (id: number) => {
+  const deleteClass = async (id: string) => {
+    const classId = String(id);
+
     if (!confirm('Are you sure you want to delete this class?')) return;
 
     try {
-      const response = await fetch(api(`/api/classes/${id}`), { method: 'DELETE' });
+      const response = await fetch(`/api/classes?id=${encodeURIComponent(classId)}`, { method: 'DELETE' });
       if (response.ok) {
         fetchClasses();
+      } else {
+        const errorText = await response.text();
+        console.error('[v0] Error deleting class:', response.status, errorText);
+        alert('Failed to delete class. Please try again.');
       }
     } catch (error) {
       console.error('[v0] Error deleting class:', error);
+      alert('Failed to delete class. Please try again.');
     }
   };
 
@@ -116,14 +169,19 @@ export function ClassesManagementDashboard() {
   return (
     <div className="space-y-6">
       {/* Header with Add Button */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gradient">Manage Classes</h2>
-          <p className="text-muted-foreground mt-1">Add, edit, and manage school classes</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <span className="chip-soft inline-flex items-center gap-2">Class setup</span>
+          <div>
+            <h2 className="text-3xl font-bold text-gradient">Manage Classes</h2>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+              Create sections, keep descriptions updated, and maintain a clean class roster.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => (showForm ? handleReset() : setShowForm(true))}
-          className="btn-primary-gradient flex items-center gap-2"
+          className="btn-primary-gradient inline-flex items-center gap-2 self-start"
         >
           <Plus className="w-4 h-4" />
           Add New Class
@@ -132,11 +190,16 @@ export function ClassesManagementDashboard() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="card-elevated space-y-4">
-          <h3 className="text-lg font-bold text-foreground">
+        <div className="card-elevated space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-lg font-bold text-foreground sm:text-xl">
             {editingId ? 'Edit Class' : 'Add New Class'}
-          </h3>
-          <form onSubmit={handleSubmit} className="grid grid-cols-3 gap-4">
+            </h3>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              {editingId ? 'Update mode' : 'Create mode'}
+            </span>
+          </div>
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Class Name <span className="text-destructive">*</span>
@@ -173,18 +236,19 @@ export function ClassesManagementDashboard() {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Class description"
-                className="input-modern"
+                className="textarea-modern min-h-[120px]"
+                rows={5}
               />
             </div>
 
-            <div className="col-span-3 flex gap-3">
+            <div className="col-span-1 flex flex-col gap-3 pt-1 lg:col-span-3 lg:flex-row">
               <button type="submit" disabled={submitting} className="btn-primary-gradient flex-1">
                 {submitting ? 'Saving...' : editingId ? 'Update Class' : 'Add Class'}
               </button>
               <button
                 type="button"
                 onClick={handleReset}
-                className="flex-1 px-4 py-3 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/50 rounded-lg transition-all font-medium text-foreground"
+                className="btn-secondary-soft flex-1"
               >
                 Cancel
               </button>
@@ -221,14 +285,14 @@ export function ClassesManagementDashboard() {
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleEdit(cls)}
-                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+                    className="btn-ghost-soft p-2"
                     title="Edit"
                   >
                     <Edit2 className="w-4 h-4 text-indigo-400" />
                   </button>
                   <button
                     onClick={() => deleteClass(cls.id)}
-                    className="p-2 hover:bg-slate-700/50 rounded-lg transition-colors"
+                    className="btn-danger-soft p-2"
                     title="Delete"
                   >
                     <Trash2 className="w-4 h-4 text-red-400" />
@@ -241,7 +305,10 @@ export function ClassesManagementDashboard() {
               )}
 
               <div className="text-xs text-muted-foreground">
-                Added {new Date(cls.created_at || '').toLocaleDateString()}
+                Added{' '}
+                {cls.createdAt
+                  ? new Date(cls.createdAt).toLocaleDateString()
+                  : 'Recently'}
               </div>
             </div>
           ))}
