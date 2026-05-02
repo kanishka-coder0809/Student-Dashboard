@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[API] Error creating class:', error);
     return NextResponse.json(
-      { success: false, message: `Failed to create class: ${String(error)}` },
+      { success: false, message: `Failed to create class: ${error instanceof Error ? error.message : (error as any)?.message || String(error)}` },
       { status: 500 }
     );
   }

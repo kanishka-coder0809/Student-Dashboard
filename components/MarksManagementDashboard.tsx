@@ -144,7 +144,7 @@ export function MarksManagementDashboard() {
       const response = await fetch(`/api/marks?studentId=${studentId}`);
       if (!response.ok) throw new Error(`Failed to fetch marks (${response.status})`);
       const data = await response.json();
-      const list = Array.isArray(data) ? data : [];
+      const list = Array.isArray(data) ? data.map(normalizeMark) : [];
       setMarks(list as any);
     } catch (error) {
       console.error('[MarksManagement] Error fetching marks:', error);
@@ -269,7 +269,7 @@ export function MarksManagementDashboard() {
   };
 
   const handleEditMarks = (mark: Marks) => {
-    setEditingId(mark._id);
+    setEditingId(mark.id);
     setFormData({
       student_id: String(mark.studentId || ''),
       subject: mark.subject,
@@ -616,7 +616,7 @@ export function MarksManagementDashboard() {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {studentMarks.map(mark => (
-                        <tr key={mark._id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={mark.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-4 text-sm font-semibold text-gray-900">{mark.subject}</td>
                           <td className="px-6 py-4 text-sm font-bold text-purple-600">
                             {mark.marksObtained}/{mark.maxMarks || 100}
@@ -656,7 +656,7 @@ export function MarksManagementDashboard() {
                                 <Edit2 className="w-4 h-4 text-blue-600" />
                               </button>
                               <button
-                                onClick={() => handleDeleteMarks(mark._id)}
+                                onClick={() => handleDeleteMarks(mark.id)}
                                 className="p-2 hover:bg-red-100 rounded-lg transition-all duration-200 hover:shadow-md"
                                 title="Delete"
                               >

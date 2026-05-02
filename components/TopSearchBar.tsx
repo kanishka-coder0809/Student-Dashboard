@@ -10,7 +10,8 @@ interface SearchFilters {
 }
 
 interface Class {
-  _id: string;
+  id: string;
+  _id?: string;
   class_name: string;
   section?: string;
 }
@@ -73,7 +74,7 @@ export function TopSearchBar({ onSearch }: TopSearchBarProps) {
           >
             <option value="">All Classes</option>
             {classes.map((cls) => (
-              <option key={cls._id} value={cls.class_name}>
+              <option key={cls.id || cls._id} value={cls.class_name}>
                 {cls.class_name} {cls.section ? `- ${cls.section}` : ''}
               </option>
             ))}

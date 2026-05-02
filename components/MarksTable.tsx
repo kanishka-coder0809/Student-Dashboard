@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Edit2, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { normalizeMark } from '@/lib/normalize';
 
 interface Mark {
   _id: string;
@@ -47,7 +48,8 @@ export function MarksTable({ studentId, onEdit, onDelete }: MarksTableProps) {
       if (!response.ok) throw new Error('Failed to fetch marks');
       const data = await response.json();
       console.log('[MarksTable] Fetched marks:', data);
-      setMarks(Array.isArray(data) ? data : []);
+      const normalized = Array.isArray(data) ? data.map(normalizeMark) : [];
+      setMarks(normalized as any);
     } catch (error) {
       console.error('[MarksTable] Error fetching marks:', error);
       setMarks([]);
@@ -102,7 +104,7 @@ export function MarksTable({ studentId, onEdit, onDelete }: MarksTableProps) {
               </tr>
             ) : (
               marks.map((mark) => (
-                <tr key={mark._id} className="hover:bg-gray-50 transition-colors">
+                <tr key={mark.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 text-sm text-gray-900 font-medium">{mark.subject}</td>
                   <td className="px-6 py-4 text-sm text-gray-900">
                     <span className="font-semibold">{mark.marksObtained}</span>
@@ -134,14 +136,14 @@ export function MarksTable({ studentId, onEdit, onDelete }: MarksTableProps) {
                   <td className="px-6 py-4 text-sm">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => onEdit && onEdit(mark._id)}
+                        onClick={() => onEdit && onEdit(mark.id)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                         title="Edit"
                       >
                         <Edit2 className="w-4 h-4 text-blue-600" />
                       </button>
                       <button
-                        onClick={() => deleteMarks(mark._id)}
+                        onClick={() => deleteMarks(mark.id)}
                         className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
                       >

@@ -8,7 +8,7 @@ import { MarksForm } from '@/components/MarksForm';
 import { MarksTable } from '@/components/MarksTable';
 import { ChevronLeft, User, BookOpen, Download } from 'lucide-react';
 import { generateStudentPDF } from '@/lib/pdf-export';
-import { normalizeStudent } from '@/lib/normalize';
+import { normalizeStudent, normalizeMark } from '@/lib/normalize';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 interface Mark {
@@ -48,7 +48,7 @@ export default function StudentDetailPage() {
       if (!response.ok) throw new Error('Failed to fetch student');
       const data = await response.json();
       console.log('[Student Profile] Fetched student:', data);
-      setStudent(data);
+      setStudent(normalizeStudent(data));
     } catch (error) {
       console.error('[Student Profile] Error fetching student:', error);
     } finally {
@@ -63,7 +63,8 @@ export default function StudentDetailPage() {
       if (!response.ok) throw new Error('Failed to fetch marks');
       const data = await response.json();
       console.log('[Student Profile] Fetched marks:', data);
-      setMarks(Array.isArray(data) ? data : []);
+      const normalizedMarks = Array.isArray(data) ? data.map(normalizeMark) : [];
+      setMarks(normalizedMarks as any);
     } catch (error) {
       console.error('[Student Profile] Error fetching marks:', error);
       setMarks([]);
@@ -145,6 +146,33 @@ export default function StudentDetailPage() {
 
   return (
     <div className="flex h-screen bg-gray-50">
+      <style>{`
+        /* Premium Dropdown Styling */
+        select {
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 1rem center;
+          background-size: 1.25rem;
+          cursor: pointer;
+        }
+        
+        select:hover {
+          border-color: #a855f7;
+          box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.1);
+        }
+
+        select option {
+          padding: 12px;
+          background-color: white;
+          color: #374151;
+        }
+
+        select option:checked {
+          background-color: #f3e8ff;
+          color: #7e22ce;
+        }
+      `}</style>
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-auto">
@@ -167,7 +195,7 @@ export default function StudentDetailPage() {
                   <span className="font-semibold">Roll No:</span> {student.rollNo}
                 </p>
                 <p className="text-gray-600">
-                  <span className="font-semibold">Class:</span> {student.class}
+                  <span className="font-semibold">Class:</span> {student.className || student.class}
                 </p>
                 <p className="text-gray-600">
                   <span className="font-semibold">Email:</span> {student.email}
@@ -200,7 +228,7 @@ export default function StudentDetailPage() {
 
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
               <p className="text-gray-600 text-sm font-medium mb-2">Class</p>
-              <p className="text-2xl font-bold text-gray-900">{student.class}</p>
+              <p className="text-2xl font-bold text-gray-900">{student.className || student.class}</p>
             </div>
 
             <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
@@ -210,7 +238,7 @@ export default function StudentDetailPage() {
 
             <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6">
               <p className="text-gray-600 text-sm font-medium mb-2">Average Marks</p>
-              <p className="text-2xl font-bold text-orange-600">{averageMarks}</p>
+              <p className="text-2xl font-bold text-orange-600">{marks.length > 0 ? averageMarks : 0}</p>
             </div>
           </div>
 
@@ -268,7 +296,7 @@ export default function StudentDetailPage() {
 
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <p className="text-sm text-gray-600">Average Marks</p>
-                  <p className="text-3xl font-bold text-purple-600">{averageMarks}</p>
+                  <p className="text-3xl font-bold text-purple-600">{marks.length > 0 ? averageMarks : 0}</p>
                 </div>
 
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">

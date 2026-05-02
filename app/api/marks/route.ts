@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
     let query = supabase.from('marks').select('*, students(*)');
     
     if (studentId) {
-      query = query.eq('student_id', studentId);
+      // Cast to number for PostgreSQL BIGINT comparison
+      const sid = isNaN(Number(studentId)) ? studentId : Number(studentId);
+      query = query.eq('student_id', sid);
     }
 
     const { data, error } = await query
