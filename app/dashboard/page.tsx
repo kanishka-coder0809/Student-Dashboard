@@ -60,18 +60,39 @@ export default function Dashboard() {
   const handleExportPDF = async () => {
     setExporting(true);
     try {
-      const studentsForPdf = students.map((s) => ({
-        id: Number.parseInt(s.id, 10) || 0,
-        name: s.name,
-        roll_no: s.rollNo,
-        class: s.className,
-        attendance_percentage: s.attendance,
-      }));
+      // Fetch all marks to include in the report
+      const marksResponse = await fetch('/api/marks');
+      const marksData = await marksResponse.json();
+      const allMarks = Array.isArray(marksData) ? marksData : [];
 
-      const pdf = await generateAllStudentsPDF(studentsForPdf);
-      pdf.save('student_management_report.pdf');
+      const studentsForPdf = students.map((s) => {
+        // Find marks for this student
+        const studentMarks = allMarks
+          .filter((m: any) => String(m.student_id || m.studentId) === String(s.id))
+          .map((m: any) => ({
+            subject: m.subject,
+            marks_obtained: m.marks_obtained || m.marksObtained,
+            max_marks: m.max_marks || m.maxMarks || 100,
+            grade: m.grade,
+            homework_status: m.homework_status || m.homeworkStatus,
+            teacher_comments: m.teacher_comments || m.teacherComments,
+          }));
+
+        return {
+          id: s.id,
+          name: s.name,
+          roll_no: s.rollNo,
+          class: s.className,
+          attendance_percentage: s.attendance,
+          marks: studentMarks,
+        };
+      });
+
+      const pdf = await generateAllStudentsPDF(studentsForPdf as any);
+      pdf.save(`student_report_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
-      console.error('[v0] Error exporting PDF:', error);
+      console.error('[Dashboard] Error exporting PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
     } finally {
       setExporting(false);
     }

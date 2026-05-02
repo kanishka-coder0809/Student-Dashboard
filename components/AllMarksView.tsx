@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Filter, Download } from 'lucide-react';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
 import { api } from '@/lib/api';
 import { normalizeStudent, normalizeMark } from '@/lib/normalize';
 
@@ -18,11 +19,11 @@ interface StudentMarksRecord {
 }
 
 const GRADE_COLORS: { [key: string]: string } = {
-  'A+': 'text-green-600 bg-green-50',
-  'A': 'text-green-500 bg-green-50',
-  'B': 'text-blue-500 bg-blue-50',
-  'C': 'text-yellow-600 bg-yellow-50',
-  'D': 'text-orange-600 bg-orange-50',
+  'A': 'text-green-600 bg-green-50',
+  'B': 'text-blue-600 bg-blue-50',
+  'C': 'text-indigo-600 bg-indigo-50',
+  'D': 'text-yellow-600 bg-yellow-50',
+  'E': 'text-orange-600 bg-orange-50',
   'F': 'text-red-600 bg-red-50',
 };
 
@@ -50,7 +51,7 @@ export function AllMarksView() {
     'History',
     'Geography',
   ];
-  const grades = ['A+', 'A', 'B', 'C', 'D', 'F'];
+  const grades = ['A', 'B', 'C', 'D', 'E', 'F'];
 
   useEffect(() => {
     fetchAllMarks();
@@ -179,55 +180,48 @@ export function AllMarksView() {
           {/* Class Filter */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Class</label>
-            <select
-              name="class"
+            <CustomDropdown
+              options={[
+                { label: 'All Classes', value: 'all' },
+                ...classes.map(cls => ({ label: cls, value: cls }))
+              ]}
               value={filters.class}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border border-input rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="all">All Classes</option>
-              {classes.map(cls => (
-                <option key={cls} value={cls}>
-                  {cls}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFilters(prev => ({ ...prev, class: val }))}
+              placeholder="All Classes"
+              searchable={true}
+              className="w-full mt-2"
+            />
           </div>
 
           {/* Subject Filter */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Subject</label>
-            <select
-              name="subject"
+            <CustomDropdown
+              options={[
+                { label: 'All Subjects', value: 'all' },
+                ...subjects.map(s => ({ label: s, value: s }))
+              ]}
               value={filters.subject}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border border-input rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="all">All Subjects</option>
-              {subjects.map(subject => (
-                <option key={subject} value={subject}>
-                  {subject}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFilters(prev => ({ ...prev, subject: val }))}
+              placeholder="All Subjects"
+              searchable={true}
+              className="w-full mt-2"
+            />
           </div>
 
           {/* Grade Filter */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">Grade</label>
-            <select
-              name="grade"
+            <CustomDropdown
+              options={[
+                { label: 'All Grades', value: 'all' },
+                ...grades.map(g => ({ label: g, value: g }))
+              ]}
               value={filters.grade}
-              onChange={handleFilterChange}
-              className="w-full px-4 py-2 border border-input rounded-lg bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="all">All Grades</option>
-              {grades.map(grade => (
-                <option key={grade} value={grade}>
-                  {grade}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setFilters(prev => ({ ...prev, grade: val }))}
+              placeholder="All Grades"
+              className="w-full mt-2"
+            />
           </div>
         </div>
       </div>

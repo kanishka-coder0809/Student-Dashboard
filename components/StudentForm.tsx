@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { normalizeStudent } from '@/lib/normalize';
 import { Save, X } from 'lucide-react';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
 
 interface StudentFormProps {
   studentId?: string;
@@ -167,20 +168,19 @@ export function StudentForm({ studentId, onSuccess }: StudentFormProps) {
             <label className="block text-sm font-semibold text-gray-900 mb-2">
               Class <span className="text-red-500">*</span>
             </label>
-            <select
-              name="class"
+            <CustomDropdown
+              options={[
+                { label: 'Select class', value: '' },
+                ...classes.map(cls => ({
+                  label: `${cls.class_name}${cls.section ? ` - ${cls.section}` : ''}`,
+                  value: cls.class_name
+                }))
+              ]}
               value={formData.class}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white cursor-pointer transition-all appearance-none"
-            >
-              <option value="">Select class</option>
-              {classes.map((cls) => (
-                <option key={cls._id} value={cls.class_name}>
-                  {cls.class_name} {cls.section ? `- ${cls.section}` : ''}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => handleChange({ target: { name: 'class', value: val } } as any)}
+              placeholder="Select class"
+              className="w-full"
+            />
           </div>
 
           {/* Attendance */}

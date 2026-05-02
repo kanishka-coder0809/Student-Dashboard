@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Save, X } from 'lucide-react';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
+import { calculateGrade } from '@/lib/utils';
 
 interface MarksFormProps {
   studentId: string;
@@ -53,15 +55,6 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
     }
   };
 
-  const calculateGrade = (marks: number, maxMarks: number = 100): string => {
-    const percentage = (marks / maxMarks) * 100;
-    if (percentage >= 90) return 'A+';
-    if (percentage >= 80) return 'A';
-    if (percentage >= 70) return 'B';
-    if (percentage >= 60) return 'C';
-    if (percentage >= 50) return 'D';
-    return 'F';
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -138,18 +131,14 @@ export function MarksForm({ studentId, marksId, onSuccess, onCancel }: MarksForm
           <label className="block text-sm font-semibold text-gray-900 mb-2">
             Subject <span className="text-red-500">*</span>
           </label>
-          <select
-            name="subject"
+          <CustomDropdown
+            options={SUBJECTS.map(s => ({ label: s, value: s }))}
             value={formData.subject}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white cursor-pointer transition-all"
-          >
-            <option value="">Select subject</option>
-            {SUBJECTS.map(subject => (
-              <option key={subject} value={subject}>{subject}</option>
-            ))}
-          </select>
+            onChange={(val) => handleChange({ target: { name: 'subject', value: val } } as any)}
+            placeholder="Select subject"
+            searchable={true}
+            className="w-full"
+          />
         </div>
 
         {/* Marks Obtained */}

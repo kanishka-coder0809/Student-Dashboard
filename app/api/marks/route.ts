@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { calculateGrade } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,14 +50,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const marksObtained = Number(body.marksObtained ?? body.marks_obtained ?? 0);
+    const maxMarks = Number(body.maxMarks ?? body.max_marks ?? 100);
     
-    // Auto-calculate grade based on marks
-    let grade = 'F';
-    if (marksObtained >= 90) grade = 'A+';
-    else if (marksObtained >= 85) grade = 'A';
-    else if (marksObtained >= 75) grade = 'B';
-    else if (marksObtained >= 65) grade = 'C';
-    else if (marksObtained >= 55) grade = 'D';
+    const grade = calculateGrade(marksObtained, maxMarks);
 
     const payload = {
       student_id: body.studentId || body.student_id,
@@ -107,14 +103,7 @@ export async function PUT(request: NextRequest) {
       const marks = Number(body.marksObtained ?? body.marks_obtained);
       payload.marks_obtained = marks;
       
-      // Re-calculate grade
-      let grade = 'F';
-      if (marks >= 90) grade = 'A+';
-      else if (marks >= 85) grade = 'A';
-      else if (marks >= 75) grade = 'B';
-      else if (marks >= 65) grade = 'C';
-      else if (marks >= 55) grade = 'D';
-      payload.grade = grade;
+      payload.grade = calculateGrade(marks, body.maxMarks || body.max_marks || 100);
     }
     if (body.homeworkStatus !== undefined || body.homework_status !== undefined) {
       payload.homework_status = body.homeworkStatus ?? body.homework_status;

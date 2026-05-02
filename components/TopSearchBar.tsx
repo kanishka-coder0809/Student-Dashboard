@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
 
 interface SearchFilters {
   name: string;
@@ -65,20 +66,20 @@ export function TopSearchBar({ onSearch }: TopSearchBarProps) {
         </div>
 
         {/* Class Filter */}
-        <div className="flex items-center bg-card border border-input rounded-lg px-4 py-2 gap-2">
-          <Filter className="w-5 h-5 text-muted-foreground" />
-          <select
+        <div className="flex items-center gap-2">
+          <CustomDropdown
+            options={[
+              { label: 'All Classes', value: '' },
+              ...classes.map(cls => ({
+                label: `${cls.class_name}${cls.section ? ` - ${cls.section}` : ''}`,
+                value: cls.class_name
+              }))
+            ]}
             value={filters.class}
-            onChange={(e) => handleChange('class', e.target.value)}
-            className="bg-transparent border-0 outline-none text-foreground cursor-pointer text-sm"
-          >
-            <option value="">All Classes</option>
-            {classes.map((cls) => (
-              <option key={cls.id || cls._id} value={cls.class_name}>
-                {cls.class_name} {cls.section ? `- ${cls.section}` : ''}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => handleChange('class', val)}
+            placeholder="Select Class"
+            className="w-48"
+          />
         </div>
 
         {/* Roll No Filter */}

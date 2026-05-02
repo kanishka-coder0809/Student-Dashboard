@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { normalizeStudent, normalizeMark } from '@/lib/normalize';
-import { Plus, Trash2, Edit2, AlertCircle, CheckCircle, BookOpen, TrendingUp } from 'lucide-react';
+import { Save, Search, Plus, Trash2, Edit2, ChevronRight, GraduationCap, BookOpen, Clock, CheckCircle2, AlertCircle, TrendingUp, CheckCircle } from 'lucide-react';
+import { CustomDropdown } from '@/components/ui/CustomDropdown';
+import { calculateGrade } from '@/lib/utils';
 
 type Student = ReturnType<typeof normalizeStudent>;
 type Marks = ReturnType<typeof normalizeMark>;
@@ -93,15 +95,6 @@ export function MarksManagementDashboard() {
     }
   }, [selectedStudentId]);
 
-  const calculateGrade = (marks: number, maxMarks: number): string => {
-    const percentage = (marks / maxMarks) * 100;
-    if (percentage >= 90) return 'A+';
-    if (percentage >= 80) return 'A';
-    if (percentage >= 70) return 'B';
-    if (percentage >= 60) return 'C';
-    if (percentage >= 50) return 'D';
-    return 'F';
-  };
 
   const fetchClasses = async () => {
     try {
@@ -159,8 +152,7 @@ export function MarksManagementDashboard() {
         .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
-  const handleClassSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const classValue = e.target.value;
+  const handleClassSelect = (classValue: string) => {
     setSelectedClass(classValue);
     setSelectedStudentId('');
     setFormData({
@@ -175,8 +167,7 @@ export function MarksManagementDashboard() {
     setEditingId(null);
   };
 
-  const handleStudentSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const studentValue = e.target.value;
+  const handleStudentSelect = (studentValue: string) => {
     setSelectedStudentId(studentValue);
     setFormData({
       student_id: studentValue,
@@ -350,29 +341,16 @@ export function MarksManagementDashboard() {
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Select Class <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={selectedClass}
-                    onChange={handleClassSelect}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all appearance-none cursor-pointer hover:border-purple-400"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 12px center',
-                      paddingRight: '36px'
-                    }}
-                  >
-                    <option value="">Choose a class...</option>
-                    {classes.length > 0 ? (
-                      classes.map(cls => (
-                        <option key={cls.id} value={cls.className}>
-                          {cls.className}
-                        </option>
-                      ))
-                    ) : (
-                      <option disabled>No classes available</option>
-                    )}
-                  </select>
+                    <CustomDropdown
+                      options={classes.map(cls => ({ 
+                        label: cls.className, 
+                        value: cls.className 
+                      }))}
+                      value={selectedClass}
+                      onChange={handleClassSelect}
+                      placeholder="Choose a class..."
+                      className="w-full"
+                    />
                 </div>
 
                 {/* Student Selection */}
@@ -380,28 +358,17 @@ export function MarksManagementDashboard() {
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Select Student <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={selectedStudentId}
-                    onChange={handleStudentSelect}
-                    required
-                    disabled={!selectedClass}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:border-purple-400"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 12px center',
-                      paddingRight: '36px'
-                    }}
-                  >
-                    <option value="">
-                      {selectedClass ? 'Choose a student...' : 'Select a class first...'}
-                    </option>
-                    {filteredStudents.map(student => (
-                      <option key={student.id} value={student.id}>
-                        {student.name} ({student.rollNo})
-                      </option>
-                    ))}
-                  </select>
+                    <CustomDropdown
+                      options={filteredStudents.map(student => ({ 
+                        label: `${student.name} (${student.rollNo})`, 
+                        value: student.id 
+                      }))}
+                      value={selectedStudentId}
+                      onChange={handleStudentSelect}
+                      placeholder={selectedClass ? 'Choose a student...' : 'Select a class first...'}
+                      searchable={true}
+                      className="w-full"
+                    />
                 </div>
 
                 {/* Subject Selection */}
@@ -409,26 +376,14 @@ export function MarksManagementDashboard() {
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Subject <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    name="subject"
-                    value={formData.subject}
-                    onChange={handleFormChange}
-                    required
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-white text-gray-900 font-medium focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all appearance-none cursor-pointer hover:border-purple-400"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                      backgroundRepeat: 'no-repeat',
-                      backgroundPosition: 'right 12px center',
-                      paddingRight: '36px'
-                    }}
-                  >
-                    <option value="">Select subject...</option>
-                    {SUBJECTS.map(subject => (
-                      <option key={subject} value={subject}>
-                        {subject}
-                      </option>
-                    ))}
-                  </select>
+                    <CustomDropdown
+                      options={SUBJECTS.map(subject => ({ label: subject, value: subject }))}
+                      value={formData.subject}
+                      onChange={(val) => setFormData(prev => ({ ...prev, subject: val }))}
+                      placeholder="Select subject..."
+                      searchable={true}
+                      className="w-full"
+                    />
                 </div>
 
                 {/* Marks and Max Marks */}
